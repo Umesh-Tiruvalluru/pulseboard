@@ -58,8 +58,6 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
     }
   }
 
-  if (!auth) return;
-
   return (
     <article className="update-card">
       <header>
