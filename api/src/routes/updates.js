@@ -2,6 +2,7 @@ const express = require("express");
 const Update = require("../models/Update");
 const { STATUS_VALUES } = require("../models/Update");
 const rateLimit = require("express-rate-limit");
+const { requireAuth, checkRole } = require("../middleware/auth");
 const SORT_VALUES = ["newest", "oldest", "most-reactions"];
 
 const router = express.Router();
