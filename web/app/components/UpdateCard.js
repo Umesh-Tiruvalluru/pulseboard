@@ -92,7 +92,7 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
                 </button>
               ))}
           </div>
-          {auth.user?.role === "LEAD" && (
+          {auth?.user?.role === "LEAD" && (
             <button className="delete-btn" type="button" onClick={handleDelete}>
               Delete
             </button>
