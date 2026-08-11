@@ -138,6 +138,52 @@ describe("GET /api/updates", () => {
   });
 });
 
+describe("DELETE /api/updates/:id", () => {
+  it("allows a LEAD to delete any update", async () => {
+    const lead = await registerUser({
+      email: "lead@example.com",
+      displayName: "Lead User",
+      role: "LEAD",
+    });
+
+    const createRes = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "Delete me", status: "done" });
+
+    const updateId = createRes.body.update._id;
+
+    const res = await request(app)
+      .delete(`/api/updates/${updateId}`)
+      .set("Authorization", `Bearer ${lead.token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toBe(updateId);
+  });
+
+  it("returns 403 when a MEMBER tries to delete another user's update", async () => {
+    const createRes = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "Protected update", status: "on-track" });
+
+    const updateId = createRes.body.update._id;
+
+    const otherMember = await registerUser({
+      email: "member2@example.com",
+      displayName: "Member Two",
+      role: "MEMBER",
+    });
+
+    const res = await request(app)
+      .delete(`/api/updates/${updateId}`)
+      .set("Authorization", `Bearer ${otherMember.token}`);
+
+    expect(res.status).toBe(403);
+    expect(res.body.message || res.body.error).toMatch(/access denied/i);
+  });
+});
+
 describe("POST /api/updates/:id/reactions", () => {
   it("adds a reaction to an update", async () => {
     const createRes = await request(app)

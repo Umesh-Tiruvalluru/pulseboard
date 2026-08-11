@@ -43,13 +43,22 @@ export default function Feed({ auth, refreshToken }) {
   }, [updates]);
 
   function handleUpdated(updated) {
-    setUpdates((prev) => prev.map((u) => (u._id === updated._id ? updated : u)));
+    setUpdates((prev) =>
+      prev.map((u) => (u._id === updated._id ? updated : u)),
+    );
+  }
+
+  function handleDeleted(deleteId) {
+    setUpdates((prev) => prev.filter((update) => update._id !== deleteId));
   }
 
   return (
     <div className="feed">
       <div className="filter-bar">
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
           <option value="">All statuses</option>
           {STATUS_OPTIONS.map((s) => (
             <option key={s} value={s}>
@@ -57,7 +66,10 @@ export default function Feed({ auth, refreshToken }) {
             </option>
           ))}
         </select>
-        <select value={authorFilter} onChange={(e) => setAuthorFilter(e.target.value)}>
+        <select
+          value={authorFilter}
+          onChange={(e) => setAuthorFilter(e.target.value)}
+        >
           <option value="">All authors</option>
           {authors.map(([id, name]) => (
             <option key={id} value={id}>
@@ -69,11 +81,19 @@ export default function Feed({ auth, refreshToken }) {
 
       {error && <p className="error">{error}</p>}
       {loading && <p className="hint">Loading feed...</p>}
-      {!loading && updates.length === 0 && <p className="hint">No updates yet.</p>}
+      {!loading && updates.length === 0 && (
+        <p className="hint">No updates yet.</p>
+      )}
 
       <div className="update-list">
         {updates.map((update) => (
-          <UpdateCard key={update._id} update={update} auth={auth} onUpdated={handleUpdated} />
+          <UpdateCard
+            key={update._id}
+            update={update}
+            auth={auth}
+            onUpdated={handleUpdated}
+            onDeleted={handleDeleted}
+          />
         ))}
       </div>
     </div>
