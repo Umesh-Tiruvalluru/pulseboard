@@ -22,7 +22,6 @@ describe("POST /api/auth/register", () => {
       email: "test@example.com",
       password: "password123",
       displayName: "Test User",
-      role: "MEMBER",
     });
 
     expect(res.status).toBe(201);
@@ -36,14 +35,12 @@ describe("POST /api/auth/register", () => {
       email: "dup@example.com",
       password: "password123",
       displayName: "First",
-      role: "MEMBER",
     });
 
     const res = await request(app).post("/api/auth/register").send({
       email: "dup@example.com",
       password: "password123",
       displayName: "Second",
-      role: "MEMBER",
     });
 
     expect(res.status).toBe(409);
@@ -57,6 +54,18 @@ describe("POST /api/auth/register", () => {
     });
 
     expect(res.status).toBe(400);
+  });
+
+  it("ignores role in the request body and defaults to MEMBER", async () => {
+    const res = await request(app).post("/api/auth/register").send({
+      email: "sneaky@example.com",
+      password: "password123",
+      displayName: "Sneaky",
+      role: "LEAD",
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.body.user.role).toBe("MEMBER");
   });
 });
 

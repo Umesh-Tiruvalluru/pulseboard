@@ -17,7 +17,7 @@ function signToken(user) {
 // POST /api/auth/register
 router.post("/register", async (req, res) => {
   try {
-    const { email, password, displayName, role } = req.body;
+    const { email, password, displayName } = req.body;
 
     if (!email || !password || !displayName) {
       return res.status(400).json({
@@ -40,18 +40,7 @@ router.post("/register", async (req, res) => {
 
     const passwordHash = await User.hashPassword(password);
 
-    let user;
-
-    if (!role) {
-      user = await User.create({ email, displayName, passwordHash });
-    } else {
-      user = await User.create({
-        email,
-        displayName,
-        passwordHash,
-        role,
-      });
-    }
+    const user = await User.create({ email, displayName, passwordHash });
 
     const token = signToken(user);
     return res.status(201).json({ token, user });

@@ -1,5 +1,6 @@
 const request = require("supertest");
 const { createApp } = require("../app");
+const User = require("../models/User");
 const { setupTestDB, teardownTestDB, clearTestDB } = require("./setup");
 
 const app = createApp();
@@ -20,6 +21,12 @@ afterEach(async () => {
 });
 
 async function registerUser(overrides = {}) {
+  if ("role" in overrides) {
+    throw new Error(
+      "registerUser() must not pass role through the public endpoint; " +
+        "promote the user via User.findOneAndUpdate in test setup instead.",
+    );
+  }
   const res = await request(app)
     .post("/api/auth/register")
     .send({
@@ -90,7 +97,9 @@ describe("POST /api/updates", () => {
 
     const res = await makeRequest();
     expect(res.status).toBe(429);
-    expect(res.body.error).toBe("Too many updates posted. Please wait a minute before posting again.");
+    expect(res.body.error).toBe(
+      "Too many updates posted. Please wait a minute before posting again.",
+    );
   });
 });
 
@@ -157,11 +166,12 @@ describe("GET /api/updates", () => {
   });
 
   it("rejects an invalid sort value", async () => {
-    const res = await request(app)
-      .get("/api/updates?sort=popular");
+    const res = await request(app).get("/api/updates?sort=popular");
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe("sort must be one of: newest, oldest, most-reactions");
+    expect(res.body.error).toBe(
+      "sort must be one of: newest, oldest, most-reactions",
+    );
   });
 
   it("filters by status", async () => {
@@ -208,22 +218,32 @@ describe("GET /api/updates", () => {
 
 describe("DELETE /api/updates/:id", () => {
   it("allows a LEAD to delete any update", async () => {
-    const lead = await registerUser({
-      email: "lead@example.com",
-      displayName: "Lead User",
-      role: "LEAD",
+    // Promote the user directly via the model — the public /register
+    // endpoint always creates a MEMBER. The original JWT was issued
+    // with role: "MEMBER" baked into the payload, and requireAuth
+    // trusts the JWT over the DB, so we log back in to get a token
+    // that reflects the promotion.
+    await User.findOneAndUpdate(
+      { email: "author@example.com" },
+      { role: "LEAD" },
+    );
+
+    const loginRes = await request(app).post("/api/auth/login").send({
+      email: "author@example.com",
+      password: "password123",
     });
+    const leadToken = loginRes.body.token;
 
     const createRes = await request(app)
       .post("/api/updates")
-      .set("Authorization", `Bearer ${token}`)
+      .set("Authorization", `Bearer ${leadToken}`)
       .send({ text: "Delete me", status: "done" });
 
     const updateId = createRes.body.update._id;
 
     const res = await request(app)
       .delete(`/api/updates/${updateId}`)
-      .set("Authorization", `Bearer ${lead.token}`);
+      .set("Authorization", `Bearer ${leadToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body).toBe(updateId);
@@ -240,7 +260,6 @@ describe("DELETE /api/updates/:id", () => {
     const otherMember = await registerUser({
       email: "member2@example.com",
       displayName: "Member Two",
-      role: "MEMBER",
     });
 
     const res = await request(app)
@@ -365,9 +384,7 @@ describe("DELETE /api/updates/:id/reactions/:reactionId", () => {
     const fakeReactionId = "74b7f3f3f3f3f3f3f3f3f3f3";
 
     const res = await request(app)
-      .delete(
-        `/api/updates/${fakeUpdateId}/reactions/${fakeReactionId}`
-      )
+      .delete(`/api/updates/${fakeUpdateId}/reactions/${fakeReactionId}`)
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(404);
