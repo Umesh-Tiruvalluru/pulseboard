@@ -457,10 +457,6 @@ router.post(
   createUpdateLimiter,
   checkRole("LEAD", "MEMBER"),
   async (req, res) => {
-    if (!isValidObjectId(req.params.id)) {
-      return res.status(400).json({ error: "Invalid update id" });
-    }
-
     try {
       const { text, status, tags, visibility } = req.body;
 
